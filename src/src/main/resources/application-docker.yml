@@ -1,0 +1,99 @@
+# Docker环境配置
+server:
+  port: 8080
+
+spring:
+  application:
+    name: database-field-comparator
+
+# 比较器配置
+comparator:
+  # 批处理大小
+  batch-size: 1000
+  
+  # 是否启用并行处理
+  enable-parallel: true
+  
+  # 线程池大小
+  thread-pool-size: 10
+  
+  # 数据源配置
+  data-sources:
+    - name: mysql-source
+      url: jdbc:mysql://mysql-source:3306/source_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      username: root
+      password: password
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      properties:
+        characterEncoding: utf8
+        useUnicode: true
+        
+    - name: mysql-target
+      url: jdbc:mysql://mysql-target:3306/target_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      username: root
+      password: password
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      properties:
+        characterEncoding: utf8
+        useUnicode: true
+        
+    - name: postgresql-db
+      url: jdbc:postgresql://postgresql-db:5432/postgresql_db
+      username: postgres
+      password: password
+      driver-class-name: org.postgresql.Driver
+      properties:
+        ssl: false
+  
+  # 比较规则配置
+  rules:
+    # 示例规则1：比较用户表的邮箱字段
+    - name: user-email-comparison
+      description: 比较两个MySQL数据库中用户表的邮箱字段
+      enabled: true
+      source-table:
+        data-source: mysql-source
+        table-name: users
+      target-table:
+        data-source: mysql-target
+        table-name: users
+      key-field: id
+      compare-field: email
+      where-condition: status = 'ACTIVE'
+      
+    # 示例规则2：比较产品表的价格字段
+    - name: product-price-comparison
+      description: 比较MySQL和PostgreSQL中产品表的价格字段
+      enabled: true
+      source-table:
+        data-source: mysql-source
+        table-name: products
+      target-table:
+        data-source: postgresql-db
+        table-name: products
+      key-field: id
+      compare-field: price
+      where-condition: deleted_at IS NULL
+      
+    # 示例规则3：比较订单状态
+    - name: order-status-comparison
+      description: 比较订单状态字段
+      enabled: true
+      source-table:
+        data-source: mysql-source
+        table-name: orders
+      target-table:
+        data-source: mysql-target
+        table-name: orders
+      key-field: id
+      compare-field: status
+
+# 日志配置
+logging:
+  level:
+    com.minimax.comparator: INFO
+    org.springframework.jdbc.core: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/database-comparator.log

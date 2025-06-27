@@ -1,0 +1,147 @@
+# 数据库字段比较器配置文件
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: database-field-comparator
+  
+  # JPA配置（如果需要）
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    
+  # 日志配置
+  logging:
+    level:
+      com.minimax.comparator: INFO
+      org.springframework.jdbc: DEBUG
+
+# 比较器配置
+comparator:
+  # 批处理大小
+  batch-size: 1000
+  
+  # 是否启用并行处理
+  enable-parallel: true
+  
+  # 线程池大小
+  thread-pool-size: 10
+  
+  # 数据源配置
+  data-sources:
+    - name: mysql-source
+      url: jdbc:mysql://localhost:3306/source_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      username: root
+      password: password
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      properties:
+        characterEncoding: utf8
+        useUnicode: true
+        
+    - name: mysql-target
+      url: jdbc:mysql://localhost:3306/target_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      username: root
+      password: password
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      properties:
+        characterEncoding: utf8
+        useUnicode: true
+        
+    - name: postgresql-source
+      url: jdbc:postgresql://localhost:5432/source_db
+      username: postgres
+      password: password
+      driver-class-name: org.postgresql.Driver
+      properties:
+        ssl: false
+        
+    - name: oracle-target
+      url: jdbc:oracle:thin:@localhost:1521:xe
+      username: system
+      password: password
+      driver-class-name: oracle.jdbc.OracleDriver
+  
+  # 比较规则配置
+  rules:
+    # 示例规则1：比较用户表的邮箱字段
+    - name: user-email-comparison
+      description: 比较两个数据库中用户表的邮箱字段
+      enabled: true
+      source-table:
+        data-source: mysql-source
+        schema: public
+        table-name: users
+      target-table:
+        data-source: mysql-target
+        schema: public
+        table-name: users
+      key-field: user_id
+      compare-field: email
+      where-condition: status = 'ACTIVE'
+      
+    # 示例规则2：比较产品表的价格字段
+    - name: product-price-comparison
+      description: 比较产品表的价格字段
+      enabled: true
+      source-table:
+        data-source: mysql-source
+        table-name: products
+      target-table:
+        data-source: postgresql-source
+        table-name: products
+      key-field: product_id
+      compare-field: price
+      where-condition: deleted_at IS NULL
+      
+    # 示例规则3：比较订单状态
+    - name: order-status-comparison
+      description: 比较订单状态字段
+      enabled: false  # 默认禁用
+      source-table:
+        data-source: mysql-source
+        table-name: orders
+      target-table:
+        data-source: oracle-target
+        schema: order_schema
+        table-name: orders
+      key-field: order_id
+      compare-field: status
+      
+    # 示例规则4：比较客户信息
+    - name: customer-info-comparison
+      description: 比较客户表的姓名字段
+      enabled: true
+      source-table:
+        data-source: mysql-source
+        table-name: customers
+      target-table:
+        data-source: mysql-target
+        table-name: customers
+      key-field: customer_id
+      compare-field: full_name
+      where-condition: created_at >= '2023-01-01'
+
+# 管理端点配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# 日志配置
+logging:
+  level:
+    com.minimax.comparator: INFO
+    org.springframework.jdbc.core: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/database-comparator.log
